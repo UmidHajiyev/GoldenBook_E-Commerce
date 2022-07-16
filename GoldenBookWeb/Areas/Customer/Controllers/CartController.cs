@@ -5,6 +5,8 @@ using GoldenBook.Models.ViewModels;
 using System.Security.Claims;
 using GoldenBook.Utility;
 using GoldenBook.Models;
+using Stripe.Checkout;
+using Stripe;
 
 namespace GoldenBookWeb.Controllers
 {
@@ -100,61 +102,110 @@ namespace GoldenBookWeb.Controllers
                 _unitOfWork.OrderDetail.Add(orderDetail);
                 _unitOfWork.Save();
             }
-            _unitOfWork.ShoppingCart.RemoveRange(ShoppingCartVM.ListCart);
+
+            var domain = "https://localhost:44307/";
+            var options = new SessionCreateOptions
+            {
+                LineItems = new List<SessionLineItemOptions>(),
+                Mode = "payment",
+                SuccessUrl = domain+$"customer/cart/OrderConfirmation?id={ShoppingCartVM.OrderHeader.Id}",
+                CancelUrl = domain+"customer/cart/index",
+            };
+            foreach (var item in ShoppingCartVM.ListCart)
+            {
+                var sessionLineItem = new SessionLineItemOptions
+                {
+                    PriceData = new SessionLineItemPriceDataOptions
+                    {
+                        UnitAmount = (long)(item.LastPrice*100/1.7),
+                        Currency = "usd",
+                        ProductData = new SessionLineItemPriceDataProductDataOptions
+                        {
+                            Name = item.Product.Name,
+                        },
+
+                    },
+                    Quantity = item.Count,
+                };
+                options.LineItems.Add(sessionLineItem);
+            }
+            var service = new SessionService();
+            Session session = service.Create(options);
+            ShoppingCartVM.OrderHeader.SessionId = session.Id;
+            ShoppingCartVM.OrderHeader.PaymentIntentId = session.PaymentIntentId;
+            _unitOfWork.Save();
+            Response.Headers.Add("Location", session.Url);
+            return new StatusCodeResult(303);
+
+        }
+
+        public IActionResult OrderConfirmation(int id)
+        {
+            OrderHeader orderheader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == id);
+            var service = new SessionService();
+            Session session = service.Get(orderheader.SessionId);
+            if (session.PaymentStatus.ToLower()=="paid")
+            {
+                _unitOfWork.OrderHeader.UpdateStatus(id, SD.StatusApproved, SD.PaymentStatusApproved);
+                _unitOfWork.Save();
+            }
+            List<ShoppingCart> shoppingCarts = _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId == orderheader.ApplicationUserId).ToList();
+
+            _unitOfWork.ShoppingCart.RemoveRange(shoppingCarts);
             _unitOfWork.Save();
 
-            return RedirectToAction("Index","Home");
-    }
-
-    public IActionResult Plus(int cartId)
-    {
-        var cart = _unitOfWork.ShoppingCart.GetFirstOrDefault(u => u.Id == cartId);
-        _unitOfWork.ShoppingCart.IncrementCount(cart, 1);
-        _unitOfWork.Save();
-        return RedirectToAction(nameof(Index));
-    }
-
-    public IActionResult Minus(int cartId)
-    {
-        var cart = _unitOfWork.ShoppingCart.GetFirstOrDefault(u => u.Id == cartId);
-        if (cart.Count == 1)
-        {
-            _unitOfWork.ShoppingCart.Remove(cart);
+            return View(id);
         }
-        else
-        {
-            _unitOfWork.ShoppingCart.DecrementCount(cart, 1);
-        }
-        _unitOfWork.Save();
-        return RedirectToAction(nameof(Index));
-    }
 
-    public IActionResult Remove(int cartId)
-    {
-        var cart = _unitOfWork.ShoppingCart.GetFirstOrDefault(u => u.Id == cartId);
-        _unitOfWork.ShoppingCart.Remove(cart);
-        _unitOfWork.Save();
-        return RedirectToAction(nameof(Index));
-    }
-
-    private double GetPrice(double quantity, double price, double price5, double price10)
-    {
-        if (quantity <= 5)
+        public IActionResult Plus(int cartId)
         {
-            return price;
+            var cart = _unitOfWork.ShoppingCart.GetFirstOrDefault(u => u.Id == cartId);
+            _unitOfWork.ShoppingCart.IncrementCount(cart, 1);
+            _unitOfWork.Save();
+            return RedirectToAction(nameof(Index));
         }
-        else
+
+        public IActionResult Minus(int cartId)
         {
-            if (quantity <= 10)
+            var cart = _unitOfWork.ShoppingCart.GetFirstOrDefault(u => u.Id == cartId);
+            if (cart.Count == 1)
             {
-                return price5;
+                _unitOfWork.ShoppingCart.Remove(cart);
             }
             else
             {
-                return price10;
+                _unitOfWork.ShoppingCart.DecrementCount(cart, 1);
+            }
+            _unitOfWork.Save();
+            return RedirectToAction(nameof(Index));
+        }
+
+        public IActionResult Remove(int cartId)
+        {
+            var cart = _unitOfWork.ShoppingCart.GetFirstOrDefault(u => u.Id == cartId);
+            _unitOfWork.ShoppingCart.Remove(cart);
+            _unitOfWork.Save();
+            return RedirectToAction(nameof(Index));
+        }
+
+        private double GetPrice(double quantity, double price, double price5, double price10)
+        {
+            if (quantity <= 5)
+            {
+                return price;
+            }
+            else
+            {
+                if (quantity <= 10)
+                {
+                    return price5;
+                }
+                else
+                {
+                    return price10;
+                }
             }
         }
-    }
 
-}
+    }
 }
