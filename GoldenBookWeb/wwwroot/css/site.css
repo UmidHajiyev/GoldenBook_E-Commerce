@@ -1,9 +1,28 @@
 html {
   font-size: 14px;
 }
+.dataTables_filter label {
+    color: lightskyblue;
+}
+.dataTables_length label {
+    color: lightskyblue;
+}
+.dataTables_length label select{
+    color: lightskyblue;
+}
+.dataTables_filter label input {
+    color: lightskyblue;
+}
+.dataTables_info {
+    background-color: lightskyblue;
+    padding:10px;
+}
+#tblData_paginate a{
+    background-color:lightskyblue;
+}
 
 @media (min-width: 768px) {
-  html {
+    html {
     font-size: 16px;
   }
 }

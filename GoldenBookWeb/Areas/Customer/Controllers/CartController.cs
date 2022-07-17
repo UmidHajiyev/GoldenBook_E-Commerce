@@ -76,8 +76,7 @@ namespace GoldenBookWeb.Controllers
 
             ShoppingCartVM.ListCart = _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId ==
             claim.Value, includeProperties: "Product");
-            ShoppingCartVM.OrderHeader.OrderStatus = SD.StatusPending;
-            ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusPending;
+
             ShoppingCartVM.OrderHeader.OrderDate = DateTime.Now;
             ShoppingCartVM.OrderHeader.ApplicationUserId = claim.Value;
 
@@ -85,6 +84,18 @@ namespace GoldenBookWeb.Controllers
             {
                 item.LastPrice = GetPrice(item.Count, item.Product.Price, item.Product.Price5, item.Product.Price10);
                 ShoppingCartVM.OrderHeader.OrderAmount += (item.Count * item.LastPrice);
+            }
+
+            ApplicationUser applicationuser = _unitOfWork.ApplicationUser.GetFirstOrDefault(u => u.Id == claim.Value);
+            if (applicationuser.CompanyId.GetValueOrDefault() == 0)
+            {
+                ShoppingCartVM.OrderHeader.OrderStatus = SD.StatusPending;
+                ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusPending;
+            }
+            else
+            {
+                ShoppingCartVM.OrderHeader.OrderStatus = SD.StatusApproved;
+                ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusDelayedPayment;
             }
 
             _unitOfWork.OrderHeader.Add(ShoppingCartVM.OrderHeader);
@@ -103,52 +114,62 @@ namespace GoldenBookWeb.Controllers
                 _unitOfWork.Save();
             }
 
-            var domain = "https://localhost:44307/";
-            var options = new SessionCreateOptions
+            if (applicationuser.CompanyId.GetValueOrDefault() == 0)
             {
-                LineItems = new List<SessionLineItemOptions>(),
-                Mode = "payment",
-                SuccessUrl = domain+$"customer/cart/OrderConfirmation?id={ShoppingCartVM.OrderHeader.Id}",
-                CancelUrl = domain+"customer/cart/index",
-            };
-            foreach (var item in ShoppingCartVM.ListCart)
-            {
-                var sessionLineItem = new SessionLineItemOptions
+                var domain = "https://localhost:44307/";
+                var options = new SessionCreateOptions
                 {
-                    PriceData = new SessionLineItemPriceDataOptions
-                    {
-                        UnitAmount = (long)(item.LastPrice*100/1.7),
-                        Currency = "usd",
-                        ProductData = new SessionLineItemPriceDataProductDataOptions
-                        {
-                            Name = item.Product.Name,
-                        },
-
-                    },
-                    Quantity = item.Count,
+                    LineItems = new List<SessionLineItemOptions>(),
+                    Mode = "payment",
+                    SuccessUrl = domain + $"customer/cart/OrderConfirmation?id={ShoppingCartVM.OrderHeader.Id}",
+                    CancelUrl = domain + "customer/cart/index",
                 };
-                options.LineItems.Add(sessionLineItem);
-            }
-            var service = new SessionService();
-            Session session = service.Create(options);
-            ShoppingCartVM.OrderHeader.SessionId = session.Id;
-            ShoppingCartVM.OrderHeader.PaymentIntentId = session.PaymentIntentId;
-            _unitOfWork.Save();
-            Response.Headers.Add("Location", session.Url);
-            return new StatusCodeResult(303);
+                foreach (var item in ShoppingCartVM.ListCart)
+                {
+                    var sessionLineItem = new SessionLineItemOptions
+                    {
+                        PriceData = new SessionLineItemPriceDataOptions
+                        {
+                            UnitAmount = (long)(item.LastPrice * 100 / 1.7),
+                            Currency = "usd",
+                            ProductData = new SessionLineItemPriceDataProductDataOptions
+                            {
+                                Name = item.Product.Name,
+                            },
 
+                        },
+                        Quantity = item.Count,
+                    };
+                    options.LineItems.Add(sessionLineItem);
+                }
+                var service = new SessionService();
+                Session session = service.Create(options);
+                ShoppingCartVM.OrderHeader.SessionId = session.Id;
+                ShoppingCartVM.OrderHeader.PaymentIntentId = session.PaymentIntentId;
+                _unitOfWork.Save();
+                Response.Headers.Add("Location", session.Url);
+                return new StatusCodeResult(303);
+            }
+            else
+            {
+                return RedirectToAction("OrderConfirmation", "Cart", new {ShoppingCartVM.OrderHeader.Id});
+            }
         }
 
         public IActionResult OrderConfirmation(int id)
         {
             OrderHeader orderheader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == id);
-            var service = new SessionService();
-            Session session = service.Get(orderheader.SessionId);
-            if (session.PaymentStatus.ToLower()=="paid")
+            if (orderheader.PaymentStatus!=SD.PaymentStatusDelayedPayment)
             {
-                _unitOfWork.OrderHeader.UpdateStatus(id, SD.StatusApproved, SD.PaymentStatusApproved);
-                _unitOfWork.Save();
+                var service = new SessionService();
+                Session session = service.Get(orderheader.SessionId);
+                if (session.PaymentStatus.ToLower() == "paid")
+                {
+                    _unitOfWork.OrderHeader.UpdateStatus(id, SD.StatusApproved, SD.PaymentStatusApproved);
+                    _unitOfWork.Save();
+                }
             }
+            
             List<ShoppingCart> shoppingCarts = _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId == orderheader.ApplicationUserId).ToList();
 
             _unitOfWork.ShoppingCart.RemoveRange(shoppingCarts);

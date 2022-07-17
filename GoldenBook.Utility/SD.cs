@@ -23,6 +23,7 @@ namespace GoldenBook.Utility
         public const string PaymentStatusPending = "Pending";
         public const string PaymentStatusApproved = "Approved";
         public const string PaymentStatusRejected = "Rejected";
+        public const string PaymentStatusDelayedPayment = "Delayed";
 
         public const string apikey = "sk_test_51LMAIEFk8gSVu06E4SEryqxYM3qy3f6U2m7cA0Pjtwgmtd0mBskASVw08hyr3IropqrbpcGBt7fY7UyFbHma3I6x00W3rS5Zzo";
     }
