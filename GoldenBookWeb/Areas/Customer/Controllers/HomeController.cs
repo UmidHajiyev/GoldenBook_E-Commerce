@@ -51,15 +51,17 @@ namespace _1KitabWeb.Controllers
             if (shopcart==null)
             {
                 _unitofwork.ShoppingCart.Add(cart);
+                _unitofwork.Save();
                 HttpContext.Session.SetInt32(SD.SessionCart,
                     _unitofwork.ShoppingCart.GetAll(u => u.ApplicationUserId == claims.Value).ToList().Count);
             }
             else
             {
                 _unitofwork.ShoppingCart.IncrementCount(shopcart, cart.Count);
+                _unitofwork.Save();
             }
             
-            _unitofwork.Save();
+            
 
             return RedirectToAction(nameof(Index));
         }

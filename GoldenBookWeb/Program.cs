@@ -1,4 +1,5 @@
 using GoldenBook.DataAccess;
+using GoldenBook.DataAccess.DbInitializer;
 using GoldenBook.DataAccess.Repository;
 using GoldenBook.DataAccess.Repository.IRepository;
 using GoldenBook.Models;
@@ -21,7 +22,12 @@ builder.Services.AddIdentity<ApplicationUser,IdentityRole>().AddEntityFrameworkS
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IDbInitializer, DbInitializer>();
 builder.Services.AddDistributedMemoryCache();
+builder.Services.AddAuthentication().AddFacebook(options=>{
+    options.AppId = "361937282760650";
+    options.AppSecret = "560e0479d37d2c14ba39c07de3ea048c";
+});
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(100);
@@ -61,3 +67,13 @@ app.MapControllerRoute(
     pattern: "{area=Customer}/{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
 app.Run();
+
+
+void SeedDatabase()
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbInitializer = scope.ServiceProvider.GetRequiredService<IDbInitializer>();
+        dbInitializer.Initialize();
+    }
+}
