@@ -1,5 +1,6 @@
 ﻿using GoldenBook.DataAccess.Repository.IRepository;
 using GoldenBook.Models;
+using GoldenBook.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -50,6 +51,8 @@ namespace _1KitabWeb.Controllers
             if (shopcart==null)
             {
                 _unitofwork.ShoppingCart.Add(cart);
+                HttpContext.Session.SetInt32(SD.SessionCart,
+                    _unitofwork.ShoppingCart.GetAll(u => u.ApplicationUserId == claims.Value).ToList().Count);
             }
             else
             {

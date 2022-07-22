@@ -4,7 +4,7 @@
     var completed = "";
     var inprocess= "";
     var all= "";
-
+    var approved = "";
     switch(status)
     {
         case "inprocess":
@@ -15,6 +15,9 @@
             break;
         case "completed":
             completed = "bg-info";
+            break;
+        case "approved":
+            approved = "bg-info";
             break;
         default:
             all = "bg-info";
@@ -36,14 +39,18 @@
                     <li class="list-group-item @inprocess">In Process</li>
                 </a>
                 <a style="text-decoration:none;" asp-controller="Order" asp-action="Index" asp-route-status="pending">
-                    <li class="list-group-item @pending">Pending</li>
+                    <li class="list-group-item @pending">Payment Pending</li>
                 </a>
                 <a style="text-decoration:none;" asp-controller="Order" asp-action="Index" asp-route-status="completed">
                     <li class="list-group-item @completed">Completed</li>
                 </a>
+                <a style="text-decoration:none;" asp-controller="Order" asp-action="Index" asp-route-status="approved">
+                    <li class="list-group-item @approved">Approved</li>
+                </a>
                 <a style="text-decoration:none;" asp-controller="Order" asp-action="Index" asp-route-status="all">
                     <li class="list-group-item @all">All</li>
                 </a>
+                
             </ul>
 
         </div>
@@ -68,9 +75,13 @@
                     Order Status
                 </th>
                 <th>
+                    Payment Status
+                </th>
+                <th>
                     Order Total
                 </th>
                 <th></th>
+
             </tr>
         </thead>
     </table>

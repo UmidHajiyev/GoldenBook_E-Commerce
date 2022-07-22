@@ -1,10 +1,13 @@
 ﻿using GoldenBook.DataAccess.Repository.IRepository;
 using GoldenBook.Models;
+using GoldenBook.Utility;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoldenBook.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = SD.Role_Admin)]
     public class CoverTypeController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;

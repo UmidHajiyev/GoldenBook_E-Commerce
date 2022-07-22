@@ -1,12 +1,15 @@
 ﻿using GoldenBook.DataAccess.Repository.IRepository;
 using GoldenBook.Models;
 using GoldenBook.Models.ViewModels;
+using GoldenBook.Utility;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace GoldenBook.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = SD.Role_Admin)]
     public class CompanyController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;
