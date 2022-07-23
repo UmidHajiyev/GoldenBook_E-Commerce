@@ -4,6 +4,7 @@ using GoldenBook.Models;
 using GoldenBook.Models.ViewModels;
 using GoldenBook.Utility;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Stripe.Checkout;
 using System.Security.Claims;
@@ -94,7 +95,7 @@ namespace GoldenBookWeb.Areas.Admin.Controllers
         {
             orderVM.OrderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == orderId, includeProperties: "ApplicationUser");
             orderVM.OrderDetail = _unitOfWork.OrderDetail.GetAll(u => u.OrderId == orderId, includeProperties: "Product");
-            var domain = "https://localhost:44307/";
+            var domain = HttpContext.Request.GetDisplayUrl().Substring(0, 24);
             var options = new SessionCreateOptions
             {
                 LineItems = new List<SessionLineItemOptions>(),

@@ -36,10 +36,8 @@ namespace GoldenBook.DataAccess.DbInitializer
                     _db.Database.Migrate();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-                throw;
             }
 
             if (!_roleManager.RoleExistsAsync(SD.Role_Admin).GetAwaiter().GetResult())

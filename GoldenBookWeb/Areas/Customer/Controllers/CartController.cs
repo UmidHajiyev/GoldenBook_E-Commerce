@@ -7,6 +7,7 @@ using GoldenBook.Utility;
 using GoldenBook.Models;
 using Stripe.Checkout;
 using Stripe;
+using Microsoft.AspNetCore.Http.Extensions;
 
 namespace GoldenBookWeb.Controllers
 {
@@ -56,6 +57,7 @@ namespace GoldenBookWeb.Controllers
             ShoppingCartVM.OrderHeader.State = ShoppingCartVM.OrderHeader.ApplicationUser.State;
             ShoppingCartVM.OrderHeader.PhoneNumber = ShoppingCartVM.OrderHeader.ApplicationUser.PhoneNumber;
             ShoppingCartVM.OrderHeader.PostalCode = ShoppingCartVM.OrderHeader.ApplicationUser.PostalCode;
+
 
 
 
@@ -116,7 +118,7 @@ namespace GoldenBookWeb.Controllers
 
             if (applicationuser.CompanyId.GetValueOrDefault() == 0)
             {
-                var domain = "https://localhost:44307/";
+                var domain = HttpContext.Request.GetDisplayUrl().Substring(0, 24);
                 var options = new SessionCreateOptions
                 {
                     LineItems = new List<SessionLineItemOptions>(),
